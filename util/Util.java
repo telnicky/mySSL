@@ -1,6 +1,7 @@
-import java.io.*;
+package util;
 
-class Util {
+import java.io.*;
+public class Util {
   public static void printException(String methodName, Exception e) {
     System.out.println(methodName);
     System.out.println(e.getMessage());

@@ -1,8 +1,13 @@
+package servers;
+
 import java.lang.*;
 import java.io.*;
 import java.net.*;
+import tcp.*;
+import util.*;
+import protocols.*;
 
-abstract class TcpServer extends TcpObject implements Runnable {
+public abstract class TcpServer extends TcpObject implements Runnable {
   private void cleanUp(ServerSocket ss, Socket cs, PrintWriter pw, BufferedReader br) {
     try {
       if(pw != null) {

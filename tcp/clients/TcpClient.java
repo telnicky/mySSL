@@ -1,5 +1,8 @@
+package clients;
+
 import java.io.*;
 import java.net.*;
+import tcp.*;
 
 abstract class TcpClient extends TcpObject {
   public void start(Integer serverPort) {
