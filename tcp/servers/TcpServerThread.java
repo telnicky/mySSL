@@ -1,12 +1,12 @@
-package servers;
+package tcp.servers;
 
 import java.net.*;
 import java.io.*;
-import tcp.*;
 import protocols.*;
 import util.*;
+import tcp.TcpThreadObject;
 
-public abstract class TcpServerThread extends Thread implements TcpObject {
+public class TcpServerThread extends Thread implements TcpThreadObject {
   protected Socket socket = null;
 
   public TcpServerThread(Socket _socket) {
@@ -30,6 +30,10 @@ public abstract class TcpServerThread extends Thread implements TcpObject {
     } catch(Exception e) {
       Util.printException("TcpServer - cleanUp", e);
     }
+  }
+
+  public Protocol getProtocol() {
+    return null;
   }
 
   public void run() {

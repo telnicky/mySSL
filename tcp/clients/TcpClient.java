@@ -6,7 +6,7 @@ import tcp.*;
 import protocols.*;
 import util.*;
 
-abstract class TcpClient implements TcpObject {
+abstract class TcpClient implements TcpThreadObject, TcpObject {
   public void start(Integer serverPort) {
     try {
       Socket socket = new Socket(host, serverPort);

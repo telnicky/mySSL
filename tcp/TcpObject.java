@@ -1,8 +1,6 @@
 package tcp;
 import protocols.Protocol;
 public interface TcpObject {
-  public abstract Protocol getProtocol();
-  public abstract Integer getPort();
-  public abstract void start();
+  public abstract void start(Integer port);
   static String host = "localhost";
 }
