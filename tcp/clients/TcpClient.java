@@ -6,10 +6,10 @@ import tcp.*;
 import protocols.*;
 import util.*;
 
-abstract class TcpClient implements TcpThreadObject, TcpObject {
+abstract public class TcpClient implements TcpThreadObject, TcpObject {
   public void start(Integer serverPort) {
     try {
-      Socket socket = new Socket(host, serverPort);
+      Socket socket = new Socket(HOST, serverPort);
       PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
       BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 

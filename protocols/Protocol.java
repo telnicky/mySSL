@@ -1,11 +1,11 @@
 package protocols;
 import util.Util;
 
-public abstract class Protocol {
-  public abstract boolean disconnect();
-  public abstract String getMessage();
-  public abstract String processInput(String input); 
-  public abstract void cleanUp(); 
+abstract public class Protocol {
+  abstract public boolean disconnect();
+  abstract public String getMessage();
+  abstract public String processInput(String input); 
+  abstract public void cleanUp(); 
 
   public void printInput(String protocol, String input) {
     String message = protocol + " <- " + input;

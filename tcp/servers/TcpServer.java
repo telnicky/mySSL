@@ -8,12 +8,22 @@ import tcp.TcpObject;
 import util.*;
 import protocols.*;
 
-public class TcpServer implements TcpObject  {
+abstract public class TcpServer implements TcpObject, Runnable  {
+  Integer port;
+  TcpServerThread thread;
+
+  public TcpServer(Integer _port) {
+    port = _port;
+  }
+
+  abstract protected void acceptSocket(ServerSocket _socket);
+
+  public void run() {
+    start(port);
+  }
+
   public void start(Integer serverPort) {
     ServerSocket serverSocket = null; 
-    Socket clientSocket = null;
-    PrintWriter out = null;
-    BufferedReader in = null;
     boolean listening = true;
 
     if(serverPort == null) {
@@ -24,8 +34,8 @@ public class TcpServer implements TcpObject  {
     try {
       serverSocket = new ServerSocket(serverPort);
       // Start accepting connections
-      while(listening) { 
-      TcpServerThread t;
+      while(listening) {
+        acceptSocket(serverSocket);
       }
     }
     catch(Exception e) {

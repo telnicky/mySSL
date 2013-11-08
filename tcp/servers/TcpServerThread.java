@@ -6,7 +6,7 @@ import protocols.*;
 import util.*;
 import tcp.TcpThreadObject;
 
-public class TcpServerThread extends Thread implements TcpThreadObject {
+abstract public class TcpServerThread extends Thread implements TcpThreadObject {
   protected Socket socket = null;
 
   public TcpServerThread(Socket _socket) {
@@ -30,10 +30,6 @@ public class TcpServerThread extends Thread implements TcpThreadObject {
     } catch(Exception e) {
       Util.printException("TcpServer - cleanUp", e);
     }
-  }
-
-  public Protocol getProtocol() {
-    return null;
   }
 
   public void run() {
