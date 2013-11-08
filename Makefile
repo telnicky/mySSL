@@ -5,7 +5,7 @@ SERVER_DIR := $(TCP_DIR)/servers
 PROTOCOL_DIR := $(TOP)/protocols
 UTIL_DIR := $(TOP)/util
 
-install: alice bob bobThread protocol tcpClient tcpObject tcpServer tcpServerThread tcpThreadObject util
+install: alice bob bobThread protocol sslClientProtocol tcpClient tcpObject tcpServer tcpServerThread tcpThreadObject util
 
 alice: $(CLIENT_DIR)/Alice.java
 	javac $(CLIENT_DIR)/Alice.java
@@ -18,6 +18,9 @@ bobThread: $(SERVER_DIR)/BobThread.java
 
 protocol: $(PROTOCOL_DIR)/Protocol.java
 	javac $(PROTOCOL_DIR)/Protocol.java
+
+sslClientProtocol: $(PROTOCOL_DIR)/SslClientProtocol.java
+	javac $(PROTOCOL_DIR)/SslClientProtocol.java
 
 tcpClient: $(CLIENT_DIR)/TcpClient.java
 	javac $(CLIENT_DIR)/TcpClient.java
