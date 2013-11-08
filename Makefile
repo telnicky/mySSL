@@ -22,6 +22,9 @@ protocol: $(PROTOCOL_DIR)/Protocol.java
 sslClientProtocol: $(PROTOCOL_DIR)/SslClientProtocol.java
 	javac $(PROTOCOL_DIR)/SslClientProtocol.java
 
+sslServerProtocol: $(PROTOCOL_DIR)/SslServerProtocol.java
+	javac $(PROTOCOL_DIR)/SslServerProtocol.java
+
 tcpClient: $(CLIENT_DIR)/TcpClient.java
 	javac $(CLIENT_DIR)/TcpClient.java
 
