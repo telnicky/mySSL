@@ -3,9 +3,10 @@ package servers;
 import java.net.*;
 import java.io.*;
 import tcp.*;
+import protocols.*;
 import util.*;
 
-public class TcpServerThread extends Thread {
+public abstract class TcpServerThread extends Thread implements TcpObject {
   protected Socket socket = null;
 
   public TcpServerThread(Socket _socket) {
@@ -31,7 +32,7 @@ public class TcpServerThread extends Thread {
     }
   }
 
-public void run() {
+  public void run() {
     PrintWriter out = null;
     BufferedReader in = null;
 
@@ -41,10 +42,9 @@ public void run() {
       in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
       String inputLine, outputLine;
-      // initiate conversation with client
       Protocol protocol = getProtocol();
 
-      while ((inputLine = in.readLine()) != null) {   
+      while ((inputLine = in.readLine()) != null) {
         outputLine = protocol.processInput(inputLine);
         if (protocol.disconnect()) {
           System.out.println("Disconnected");

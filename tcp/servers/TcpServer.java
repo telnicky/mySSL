@@ -7,7 +7,7 @@ import tcp.*;
 import util.*;
 import protocols.*;
 
-public abstract class TcpServer extends TcpObject implements Runnable {
+public abstract class TcpServer implements Runnable, TcpObject  {
   private void cleanUp(ServerSocket ss, Socket cs, PrintWriter pw, BufferedReader br) {
     try {
       if(pw != null) {
