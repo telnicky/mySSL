@@ -1,4 +1,4 @@
-package clients;
+package tcp.clients;
 
 import java.io.*;
 import java.net.*;
