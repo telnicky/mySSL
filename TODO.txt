@@ -1,2 +1,23 @@
-stub out servers / threads / clients
-create protocol
+Handshake phase:
+  client and server authenticate via certificates
+    generate and send certs with every message
+
+  client will assign data encryption and integrity protection
+
+  client and server will send encrypted nonces to each other
+  that are xored together to create the master secret
+
+  compute a hash of all messages exchanged and exchange these hashes
+    use keyed SHA-1 for the hash
+
+  generate four keys:
+    two each for encryption
+    two for authentication
+    * one for each direction
+    * use master secret as the key material
+
+Data Phase:
+  Transfer a file using the SSL record format
+  
+  Decrypt the file at the client and do a diff of the original to verify
+

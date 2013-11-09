@@ -1,14 +1,18 @@
 TOP := $(shell pwd)
 TCP_DIR := $(TOP)/tcp
+AUTHENTICATION_DIR := $(TOP)/authentication
 CLIENT_DIR := $(TCP_DIR)/clients
 SERVER_DIR := $(TCP_DIR)/servers
 PROTOCOL_DIR := $(TOP)/protocols
 UTIL_DIR := $(TOP)/util
 
-install: alice bob bobThread protocol sslClientProtocol tcpClient tcpObject tcpServer tcpServerThread tcpThreadObject util
+install: alice authenticationManager bob bobThread protocol sslClientProtocol tcpClient tcpObject tcpServer tcpServerThread tcpThreadObject util
 
 alice: $(CLIENT_DIR)/Alice.java
 	javac $(CLIENT_DIR)/Alice.java
+
+authenticationManager: $(AUTHENTICATION_DIR)/AuthenticationManager.java
+	javac $(AUTHENTICATION_DIR)/AuthenticationManager.java
 
 bob: $(SERVER_DIR)/Bob.java
 	javac $(SERVER_DIR)/Bob.java
