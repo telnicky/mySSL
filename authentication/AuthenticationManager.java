@@ -18,13 +18,16 @@ public class AuthenticationManager {
   private static String keyStorePath = "authentication/certs/keystore.jks";
   private static String format = "DESede/CBC/PKCS5Padding";
   private static String encryptionAlgorithm = "DESede";
+  private static String hashAlgorithm = "HmacSHA1";
   private Cipher cipher = null;
-  private SecretKey key = null;
+  private SecretKey encryptionKey = null;
   private SecureRandom rand = null;
+  private Mac mac = null;
 
-  public AuthenticationManager(String _key, String _certAlias) {
+  public AuthenticationManager(String _encryptionKey, String _integrityKey, String _certAlias) {
     try {
-      key = stringToKey(_key);
+      encryptionKey = stringToEncryptionKey(_encryptionKey);
+      mac = buildMac(_integrityKey);
       rand = new SecureRandom();
       certAlias = _certAlias;
     }
@@ -33,6 +36,19 @@ public class AuthenticationManager {
     }
   }
 
+  private Mac buildMac(String _key) {
+    Mac newMac = null;
+    try {
+      SecretKeySpec spec = new SecretKeySpec(_key.getBytes(), hashAlgorithm);
+      newMac = Mac.getInstance(hashAlgorithm);
+      newMac.init(spec);
+    }
+    catch(Exception e) {
+      Util.printException("buildMac", e);
+    }
+
+    return newMac;
+  }
 
   private static void cleanUp(FileInputStream _fis) {
     try {
@@ -44,7 +60,6 @@ public class AuthenticationManager {
       Util.printException("cleanUp", e);
     }
   }
-
 
   public String decrypt(byte[] cipher) {
     byte[] messageBytes = null;
@@ -82,7 +97,7 @@ public class AuthenticationManager {
         cipher = Cipher.getInstance(format);
       }
 
-      cipher.init(mode, key);
+      cipher.init(mode, encryptionKey);
     } catch(Exception e) {
       Util.printException("getCipher", e);
     }
@@ -112,6 +127,11 @@ public class AuthenticationManager {
     return null;
   }
 
+  public String hash(byte[] data) {
+    byte[] hashed_data = mac.doFinal(data);
+    return Util.toHexString(hashed_data);
+  }
+
   private static void loadKeyStore() {
     FileInputStream fis = null;
     try {
@@ -127,19 +147,19 @@ public class AuthenticationManager {
     }
   }
 
-  public void printSecretKey() {
-    System.out.println(Util.toHexString(key.getEncoded()));
+  public void printKeys() {
+    System.out.println("Encryption key:");
+    System.out.println(Util.toHexString(encryptionKey.getEncoded()));
   }
 
   // accepts a key as a string and returns a key
-  public SecretKey stringToKey(String strKey) {
+  public SecretKey stringToEncryptionKey(String strKey) {
     SecretKey newKey = null;
-    DESedeKeySpec spec;
     SecretKeyFactory factory;
 
     try {
       byte[] keyInBytes = strKey.getBytes("UTF-8");
-      spec = new DESedeKeySpec(keyInBytes);
+      DESedeKeySpec spec = new DESedeKeySpec(keyInBytes);
       factory = SecretKeyFactory.getInstance(encryptionAlgorithm);
       newKey = factory.generateSecret(spec);
     }
@@ -151,13 +171,16 @@ public class AuthenticationManager {
   }
 
   public static void main(String[] args) {
-    String testKey = "DEADBEEFDEADBEEFDEADBEEF";
-    AuthenticationManager aM = new AuthenticationManager(testKey, "aliceCert");
+    String key1 = "DEADBEEFDEADBEEFDEADBEEF";
+    String key2 = "DEADBEEF";
+    AuthenticationManager aM = new AuthenticationManager(key1, key2, "aliceCert");
     System.out.println(aM.getKeyCertificate());
     System.out.print("====");
-    aM.printSecretKey();
+    aM.printKeys();
     System.out.print("====");
     System.out.println(aM.getNonce());
+    System.out.print("====");
+    System.out.println(aM.hash("foose".getBytes()));
   }
 }
 
