@@ -15,7 +15,6 @@ public class AuthenticationManager {
 
   // keytool -genkey -keyalg RSA -alias bobCert -keystore keystore.jks -storepass password -validity 360 -keysize 2048
   private static KeyStore ks;
-  private String certAlias;
   private static int HASH_LENGTH = 20;
   private static String keyStorePath = "authentication/certs/keystore.jks";
   private static String format = "DESede/CBC/PKCS5Padding";
@@ -28,12 +27,11 @@ public class AuthenticationManager {
   private SecureRandom rand = null;
   private Mac mac = null;
 
-  public AuthenticationManager(String _encryptionKey, String _integrityKey, String _certAlias) {
+  public AuthenticationManager(String _encryptionKey, String _integrityKey) {
     try {
       encryptionKey = stringToEncryptionKey(_encryptionKey);
       mac = buildMac(_integrityKey);
       rand = new SecureRandom();
-      certAlias = _certAlias;
     }
     catch(Exception e) {
       Util.printException("Constructor", e);
@@ -113,19 +111,13 @@ public class AuthenticationManager {
     return cipher;
   }
 
-  public long getNonce() {
-    byte[] nonce = new byte[64];
-    rand.nextBytes(nonce);
-    return ByteBuffer.wrap(nonce).getLong();
-  }
-
-  public String getKeyCertificate() {
+  public String getCertificate(String alias) {
     if(ks == null) {
       loadKeyStore();
     }
 
     try {
-      Certificate cert = ks.getCertificate(certAlias);
+      Certificate cert = ks.getCertificate(alias);
       return Util.toHexString(cert.getEncoded());
     }
     catch(Exception e) {
@@ -133,6 +125,12 @@ public class AuthenticationManager {
     }
 
     return null;
+  }
+
+  public long getNonce() {
+    byte[] nonce = new byte[64];
+    rand.nextBytes(nonce);
+    return ByteBuffer.wrap(nonce).getLong();
   }
 
   // hash is 160 bits
@@ -200,11 +198,19 @@ public class AuthenticationManager {
     }
   }
 
+  public void verifyCertificate(String alias, String _cert) throws Exception {
+    String cert = getCertificate(alias);
+    if(!cert.equals(_cert)) {
+      throw new Exception("Invalid Certificate");
+    } 
+  }
+
+
   public static void main(String[] args) {
     String key1 = "DEADBEEFDEADBEEFDEADBEEF";
     String key2 = "DEADBEEF";
-    AuthenticationManager aM = new AuthenticationManager(key1, key2, "aliceCert");
-    System.out.println(aM.getKeyCertificate());
+    AuthenticationManager aM = new AuthenticationManager(key1, key2);
+    System.out.println(aM.getCertificate("aliceCert"));
     System.out.print("====");
     aM.printKeys();
     System.out.print("====");
@@ -214,6 +220,11 @@ public class AuthenticationManager {
     System.out.println("====");
     System.out.println(Util.toHexString(aM.encrypt("goosefraba")));
     System.out.println(aM.decrypt(aM.encrypt("goosefraba")));
+    try {
+      aM.verifyCertificate("bobCert", aM.getCertificate("aliceCert"));
+    } catch (Exception e) {
+      Util.printException("main", e);
+    }
   }
 }
 
