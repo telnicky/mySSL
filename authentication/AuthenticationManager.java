@@ -1,11 +1,12 @@
 package authentication;
 
-import javax.crypto.*;
 import java.io.FileInputStream;
 import java.nio.ByteBuffer;
 import java.security.cert.Certificate;
 import java.security.KeyStore;
 import java.security.SecureRandom;
+import java.util.Arrays;
+import javax.crypto.*;
 import javax.crypto.spec.*;
 
 import util.Util;
@@ -15,11 +16,14 @@ public class AuthenticationManager {
   // keytool -genkey -keyalg RSA -alias bobCert -keystore keystore.jks -storepass password -validity 360 -keysize 2048
   private static KeyStore ks;
   private String certAlias;
+  private static int HASH_LENGTH = 20;
   private static String keyStorePath = "authentication/certs/keystore.jks";
   private static String format = "DESede/CBC/PKCS5Padding";
   private static String encryptionAlgorithm = "DESede";
   private static String hashAlgorithm = "HmacSHA1";
+  private static byte[] ivMaterial = new byte[] { 4, 8, 15, 16, 23, 42, 4, 8 };
   private Cipher cipher = null;
+  private static IvParameterSpec ivParameters = new IvParameterSpec(ivMaterial);
   private SecretKey encryptionKey = null;
   private SecureRandom rand = null;
   private Mac mac = null;
@@ -66,6 +70,8 @@ public class AuthenticationManager {
     String message = null;
 
     try {
+      validateHash(cipher);
+      cipher = Arrays.copyOfRange(cipher, 0, cipher.length - HASH_LENGTH);
       messageBytes = getCipher(Cipher.DECRYPT_MODE).doFinal(cipher);
       message = new String(messageBytes);
     }
@@ -80,9 +86,11 @@ public class AuthenticationManager {
     byte[] cipherText = null;
 
     try {
-      //byte[] bytes = padMessage(message.getBytes("UTF-8"));
       byte[] bytes = message.getBytes("UTF-8");
       cipherText = getCipher(Cipher.ENCRYPT_MODE).doFinal(bytes);
+      System.out.println("l1: " + cipherText.length);
+      cipherText = hashMessage(cipherText);
+      System.out.println("l2: " + cipherText.length);
     }
     catch(Exception e) {
       Util.printException("encrypt", e);
@@ -97,7 +105,7 @@ public class AuthenticationManager {
         cipher = Cipher.getInstance(format);
       }
 
-      cipher.init(mode, encryptionKey);
+      cipher.init(mode, encryptionKey, ivParameters);
     } catch(Exception e) {
       Util.printException("getCipher", e);
     }
@@ -127,9 +135,21 @@ public class AuthenticationManager {
     return null;
   }
 
-  public String hash(byte[] data) {
-    byte[] hashed_data = mac.doFinal(data);
-    return Util.toHexString(hashed_data);
+  // hash is 160 bits
+  public byte[] hash(byte[] data) {
+    return hash(data, 0, data.length);
+  }
+
+  public byte[] hash(byte[] data, int offset, int length) {
+    mac.update(data, offset, length);
+    byte[] hashed_data = mac.doFinal();
+
+    return hashed_data;
+  }
+
+  private byte[] hashMessage(byte[] cipher) {
+    byte[] messageDigest = hash(cipher);
+    return Util.concatByteArrays(cipher, messageDigest);
   }
 
   private static void loadKeyStore() {
@@ -170,6 +190,16 @@ public class AuthenticationManager {
     return newKey;
   }
 
+  private void validateHash(byte[] cipher) throws Exception {
+    byte[] originalHash = new byte[HASH_LENGTH];
+    System.arraycopy(cipher, cipher.length - HASH_LENGTH, originalHash, 0, HASH_LENGTH);
+    byte[] computedHash = hash(cipher, 0, cipher.length - HASH_LENGTH);
+
+    if(!Arrays.equals(originalHash, computedHash)) {
+      throw new Exception("Data integrity check failed");
+    }
+  }
+
   public static void main(String[] args) {
     String key1 = "DEADBEEFDEADBEEFDEADBEEF";
     String key2 = "DEADBEEF";
@@ -179,8 +209,11 @@ public class AuthenticationManager {
     aM.printKeys();
     System.out.print("====");
     System.out.println(aM.getNonce());
-    System.out.print("====");
+    System.out.println("====");
     System.out.println(aM.hash("foose".getBytes()));
+    System.out.println("====");
+    System.out.println(Util.toHexString(aM.encrypt("goosefraba")));
+    System.out.println(aM.decrypt(aM.encrypt("goosefraba")));
   }
 }
 

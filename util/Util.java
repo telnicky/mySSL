@@ -1,7 +1,16 @@
 package util;
 
 import java.io.*;
+import java.nio.*;
+
 public class Util {
+  public static byte[] concatByteArrays(byte[] a1, byte[] a2) {
+    byte[] bytes = new byte[a1.length + a2.length];
+    System.arraycopy(a1, 0, bytes, 0, a1.length);
+    System.arraycopy(a2, 0, bytes, a1.length, a2.length);
+    return bytes;
+  }
+
   public static void printException(String methodName, Exception e) {
     System.out.println(methodName);
     System.out.println(e.getMessage());
