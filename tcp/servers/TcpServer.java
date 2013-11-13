@@ -11,6 +11,7 @@ import protocols.*;
 abstract public class TcpServer implements TcpObject, Runnable  {
   Integer port;
   TcpServerThread thread;
+  public boolean listening = false;
 
   public TcpServer(Integer _port) {
     port = _port;
@@ -24,7 +25,6 @@ abstract public class TcpServer implements TcpObject, Runnable  {
 
   public void start(Integer serverPort) {
     ServerSocket serverSocket = null; 
-    boolean listening = true;
 
     if(serverPort == null) {
       System.err.println("Must provide server port");
@@ -34,11 +34,14 @@ abstract public class TcpServer implements TcpObject, Runnable  {
     try {
       serverSocket = new ServerSocket(serverPort);
       // Start accepting connections
+      System.out.println("Listening...");
+      listening = true;
       while(listening) {
         acceptSocket(serverSocket);
       }
     }
     catch(Exception e) {
+      listening = false;
       Util.printException("TcpServer - start", e);
     }
   }

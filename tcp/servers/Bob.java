@@ -18,4 +18,9 @@ public class Bob extends TcpServer {
       Util.printException("Accept Socket", e);
     }
   }
+  
+  public static void main(String[] args) {
+    new Bob(DEFAULT_PORT).run();
+  }
+
 }

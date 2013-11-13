@@ -27,7 +27,7 @@ public class AuthenticationManager {
   private Cipher cipher = null;
   private SecureRandom rand = null;
 
-  public AuthenticationManager(String _encryptionKey, String _integrityKey) {
+  public AuthenticationManager() {
     try {
       rand = new SecureRandom();
     }
@@ -46,7 +46,7 @@ public class AuthenticationManager {
     SecretKey newKey = null;
     SecretKeyFactory factory;
     strKey = padKey(strKey);
-    
+
     try {
       byte[] keyInBytes = strKey.getBytes("UTF-8");
       DESedeKeySpec spec = new DESedeKeySpec(keyInBytes);
@@ -112,9 +112,7 @@ public class AuthenticationManager {
     try {
       byte[] bytes = message.getBytes("UTF-8");
       cipherText = getCipher(key, Cipher.ENCRYPT_MODE).doFinal(bytes);
-      System.out.println("l1: " + cipherText.length);
       cipherText = hashMessage(mac, cipherText);
-      System.out.println("l2: " + cipherText.length);
     }
     catch(Exception e) {
       Util.printException("encrypt", e);
@@ -229,8 +227,8 @@ public class AuthenticationManager {
     String key1 = "DEADBEEFDEADBEEFDEADBEEF";
     String key2 = "DEADBEEF";
     long ms = 8901234;
-    AuthenticationManager aM = new AuthenticationManager(key1, key2);
-    
+    AuthenticationManager aM = new AuthenticationManager();
+
     try {
     } catch (Exception e) {
       Util.printException("main", e);

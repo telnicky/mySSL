@@ -20,8 +20,8 @@ import util.Util;
 
 public class SslServerProtocol extends SslProtocol {
 
-  public SslServerProtocol(String _clientAlias) {
-    certAlias = _clientAlias;
+  public SslServerProtocol(String _serverAlias) {
+    certAlias = _serverAlias;
   }
 
   public String getMessage() {
@@ -29,40 +29,17 @@ public class SslServerProtocol extends SslProtocol {
   }
 
   public String processInput(String input) {
-    // header:body:certificate
-    // REQUEST--ALIAS:body:certificate
-    byte[] inputBytes = Util.toByteArray(input);
-    String unencryptedInput = authManager.decrypt(encryptionKey0, integrityMac0, inputBytes);
-
-    String[] request = unencryptedInput.split(":");
-    String[] header = request[0].split("--");
-    validateCertificate(header[1], request[2]);
-
-    String nextResponse = null;
-    // FORMAT--ALIAS:ENCFORMAT--INTFORMAT--NONCE:CERT
-    if(header[0].equals(requests[0])) {
-      nextResponse = receiveFormat(request[1]);
-    }
-    // MESSAGE_INTEGRITY--ALIAS:HASH:CERT
-    else if(header[0].equals(requests[1])) {
-      nextResponse = receiveMessageIntegrity(header[1], request[1]);
-    }
-    else {
-      disconnect = true;
-    }
-
-    recordMessage(certAlias, input);
-    return nextResponse;
+    return processInput(input, requests);
   }
 
   public String receiveFormat(String body) {
     // ENCRYPTION--INTEGRITY--NONCE 
-    String[] message = body.split("--");
+    String[] message = body.split(secondLevelDelimiter);
     long nonce = authManager.getNonce();
 
     if(message[0].equals(authManager.getEncryptionFormat())
         && message[1].equals(authManager.getIntegrityFormat())) {
-      
+
       masterSecret = nonce ^ Long.valueOf(message[2]);
       generateKeys();
       return sendFormat(true, nonce);
@@ -80,19 +57,20 @@ public class SslServerProtocol extends SslProtocol {
     return null;
   }
 
-  public String sendFormat(boolean success, long nonce) {
-    if(!success) {
-      return responses[0];
+  public String sendFormat(boolean valid, long nonce) {
+    if(!valid) {
+      return errors[0];
     }
-    
-    String header = responses[3];
-    String body = responses[0] + "--" + String.valueOf(nonce);
-    
+
+    String header = responses[0];
+    String body = success[0] + secondLevelDelimiter + String.valueOf(nonce);
+
     return buildMessage(header, body);
   }
 
   public String sendMessageIntegrity() {
-    return hashMessages(certAlias, "SERVER");
+    String header = responses[1];
+    return buildMessage(header, hashMessages(certAlias, "SERVER"));
   }
 }
 

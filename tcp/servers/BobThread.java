@@ -9,6 +9,7 @@ public class BobThread extends TcpServerThread {
   }
 
   public Protocol getProtocol() {
-    return null;
+    SslServerProtocol ssl = new SslServerProtocol("bobCert");
+    return ssl;
   }
 }

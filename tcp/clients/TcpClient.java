@@ -7,6 +7,15 @@ import protocols.*;
 import util.*;
 
 abstract public class TcpClient implements TcpThreadObject, TcpObject {
+  Integer port;
+  public TcpClient(Integer _port) {
+    port = _port;
+  }
+
+  public void start() {
+    start(port);
+  }
+
   public void start(Integer serverPort) {
     try {
       Socket socket = new Socket(HOST, serverPort);
@@ -15,12 +24,14 @@ abstract public class TcpClient implements TcpThreadObject, TcpObject {
 
       String inputLine, outputLine;
       Protocol protocol = getProtocol();
-
+      
       // initiate conversation
       out.println(protocol.getMessage());
+
       while ((inputLine = in.readLine()) != null) {
         outputLine = protocol.processInput(inputLine);
         if (protocol.disconnect()) {
+          System.out.println("Disconnecting...");
           break; 
         }
         out.println(outputLine);

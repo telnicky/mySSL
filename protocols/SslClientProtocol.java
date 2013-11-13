@@ -25,40 +25,22 @@ public class SslClientProtocol extends SslProtocol {
   }
 
   public String getMessage() {
-    return sendFormat();
-  }
-
-  public String processInput(String input) {
-    // header:body:certificate
-    // RESPONSE--ALIAS:body:certificate
-    byte[] inputBytes = Util.toByteArray(input);
-    String unencryptedInput = authManager.decrypt(encryptionKey0, integrityMac0, inputBytes);
-
-    String[] response = unencryptedInput.split(":");
-    String[] header = response[0].split("--");
-    validateCertificate(header[1], response[2]);
-
-    String nextRequest = null;
-    // FORMAT--ALIAS:OK--NONCE:CERT
-    if(header[0].equals(responses[3])) {
-      nextRequest = receiveFormat(response[1]);
-    }
-    // MESSAGE_INTEGRITY--ALIAS:HASH:CERT
-    else if(header[0].equals(responses[1])) {
-      nextRequest = receiveMessageIntegrity(header[1], response[1]);
-    }
-    else {
-      disconnect = true;
-    }
-
-    recordMessage(certAlias, input);
+    String output = sendFormat();
+    byte[] bytes = authManager.encrypt(encryptionKey0, integrityMac0, output);
+    String nextRequest = Util.toHexString(bytes);
+    printOutput(certAlias, output);
+    recordMessage(certAlias, nextRequest);
     return nextRequest;
   }
 
-  public String receiveFormat(String body) {
-    String[] message = body.split("--"); 
+  public String processInput(String input) {
+    return processInput(input, responses);
+  }
 
-    if(message[0].equals(responses[0])) {
+  public String receiveFormat(String body) {
+    String[] message = body.split(secondLevelDelimiter); 
+
+    if(message[0].equals(errors[0])) {
       disconnect = true;
       return sendFormat();
     }
@@ -80,13 +62,14 @@ public class SslClientProtocol extends SslProtocol {
   public String sendFormat() {
     masterSecret = authManager.getNonce();
     String header = requests[0];
-    String body = authManager.getEncryptionFormat() + "--" + authManager.getIntegrityFormat();
-    body = body + "--" + String.valueOf(masterSecret);
+    String body = authManager.getEncryptionFormat() + secondLevelDelimiter + authManager.getIntegrityFormat();
+    body = body + secondLevelDelimiter + String.valueOf(masterSecret);
     return buildMessage(header, body);
   }
 
   public String sendMessageIntegrity() {
-    return hashMessages(certAlias, "CLIENT");
+    String header = requests[1];
+    return buildMessage(header, hashMessages(certAlias, "CLIENT"));
   }
 }
 

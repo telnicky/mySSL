@@ -7,7 +7,7 @@ import util.*;
 import tcp.TcpThreadObject;
 
 abstract public class TcpServerThread extends Thread implements TcpThreadObject {
-  protected Socket socket = null;
+  protected Socket socket;
 
   public TcpServerThread(Socket _socket) {
     super("TcpServerThread");

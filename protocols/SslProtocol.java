@@ -23,18 +23,26 @@ public abstract class SslProtocol extends Protocol {
   protected long masterSecret;
 
   protected static String[] requests  = { "FORMAT", "MESSAGE_INTEGRITY" };
-  protected static String[] responses = { "NO", "MESSAGE_INTEGRITY", "OK", "FORMAT"};
+  protected static String[] responses = { "FORMAT", "MESSAGE_INTEGRITY" };
+  protected static String[] errors = { "NO" };
+  protected static String[] success = { "OK" };
+  protected static String topLevelDelimiter = ":";
+  protected static String secondLevelDelimiter = "#";
+
+  public abstract String receiveFormat(String body); 
+  public abstract String receiveMessageIntegrity(String fromAlias, String body);
 
   public SslProtocol() {
     disconnect = false;
     exchangedMessages = new HashMap<String, ArrayList<String>>(); 
+    authManager = new AuthenticationManager();
     encryptionKey0 = authManager.buildKey(sharedKey);
     integrityMac0 = authManager.buildMac(sharedMac);
   }
 
   public String buildMessage(String header, String body) {
-    header = header + "--" + certAlias;
-    return header + ":" + body + ":" + authManager.getCertificate(certAlias);
+    header = header + secondLevelDelimiter + certAlias;
+    return header + topLevelDelimiter + body + topLevelDelimiter + authManager.getCertificate(certAlias);
   }
 
   public void cleanUp() {
@@ -50,15 +58,54 @@ public abstract class SslProtocol extends Protocol {
   }
 
   public void generateKeys() {
-    integrityMac1 = authManager.buildMac(masterSecret);  
-    integrityMac2 = authManager.buildMac(masterSecret + 1);  
-    encryptionKey1 = authManager.buildKey(masterSecret);  
-    encryptionKey2 = authManager.buildKey(masterSecret + 1);  
+    integrityMac1 = authManager.buildMac(masterSecret);
+    integrityMac2 = authManager.buildMac(masterSecret + 1);
+    encryptionKey1 = authManager.buildKey(masterSecret);
+    encryptionKey2 = authManager.buildKey(masterSecret + 1);
   }
 
-  public String hashMessages(String alias, String prepend) {
+  public String processInput(String input, String[] actions) {
+    // header:body:certificate
+    // RESPONSE--ALIAS:body:certificate
+    byte[] inputBytes = Util.toByteArray(input);
+    String unencryptedInput = authManager.decrypt(encryptionKey0, integrityMac0, inputBytes);
+
+    printInput(certAlias, unencryptedInput);
+
+    String[] response = unencryptedInput.split(topLevelDelimiter);
+    String[] header = response[0].split(secondLevelDelimiter);
+    validateCertificate(header[1], response[2]);
+
+    String nextRequest = null;
+    // FORMAT--ALIAS:OK--NONCE:CERT
+    if(header[0].equals(actions[0])) {
+      nextRequest = receiveFormat(response[1]);
+    }
+    // MESSAGE_INTEGRITY--ALIAS:HASH:CERT
+    else if(header[0].equals(actions[1])) {
+      nextRequest = receiveMessageIntegrity(header[1], response[1]);
+    }
+    else {
+      disconnect = true;
+    }
+
+    if(disconnect()) {
+      return null;
+    }
+
+    recordMessage(header[1], input);
+    printOutput(certAlias, nextRequest);
+    nextRequest = Util.toHexString(authManager.encrypt(encryptionKey0, integrityMac0, nextRequest));
+    recordMessage(certAlias, nextRequest);
+
+    return nextRequest;
+  }
+
+
+ public String hashMessages(String alias, String prepend) {
     ArrayList<String> messages = exchangedMessages.get(alias);
     String hashedMessage = prepend;
+
     for(int i = 0; i < messages.size(); i++) {
       hashedMessage += messages.get(i);
     }
@@ -68,13 +115,11 @@ public abstract class SslProtocol extends Protocol {
   }
 
   public void recordMessage(String sender, String message) {
-    ArrayList<String> messages = exchangedMessages.get(sender);
-
-    if(messages == null) {
-      messages = new ArrayList<String>();
+    if(exchangedMessages.get(sender) == null) {
+      exchangedMessages.put(sender, new ArrayList<String>());
     }
 
-    messages.add(message);
+    exchangedMessages.get(sender).add(message);
   }
 
   public void validateCertificate(String alias, String cert) {
