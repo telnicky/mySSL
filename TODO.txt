@@ -21,3 +21,21 @@ Data Phase:
   
   Decrypt the file at the client and do a diff of the original to verify
 
+
+Protocol:
+
+  Client sends DESede/CBC/PKCS5Padding HmacSHA1 with Ra
+  Server response ok with Rb or no
+
+    * Ra xor Rb to create Master secret
+
+  Client sends exchanged messages with CLIENT prepended
+  Server sends exchanged messages with SERVER prepended
+
+    * generate four keys 
+      two each for encryption
+      two for authentication
+
+  Exchage file using ssl record format
+  Decrypt file and verify
+
