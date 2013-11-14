@@ -21,6 +21,11 @@ Data Phase:
   
   Decrypt the file at the client and do a diff of the original to verify
 
+  SSL record format:
+    5 byte header
+      0x17 0300 [length of data excluding header]
+    max length of 16384 bytes including the hash
+
 
 Protocol:
 

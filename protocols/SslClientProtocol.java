@@ -33,6 +33,30 @@ public class SslClientProtocol extends SslProtocol {
     return nextRequest;
   }
 
+  public String processData(String input, String[] actions) {
+    String response = null;
+    byte[] inputBytes = Util.toByteArray(input);
+// need to setup keys
+    String unencryptedInput = authManager.decrypt(encryptionKey0, integrityMac0, inputBytes);
+    String header = unencryptedInput.substring(0, 5);
+    byte[] body = Util.toByteArray(unencryptedInput.substring(5));
+    
+    byte size = Util.toByteArray(header.substring(3,5))[0];
+    if(size == 0) {
+      response = validateFile();
+      if(response.equals(success[0])) {
+        disconnect = true;
+      }
+    }
+    else {
+      response = receiveData(body); 
+    }
+
+    printInput(certAlias, unencryptedInput);
+     
+    return success[0]; 
+  }
+
   public String processInput(String input) {
     return processInput(input, responses);
   }
@@ -50,9 +74,14 @@ public class SslClientProtocol extends SslProtocol {
     return sendMessageIntegrity();
   }
 
+  public String receiveData(byte[] body) {
+    dataBytes.add(body);
+    return success[0];
+  }
+
   public String receiveMessageIntegrity(String fromAlias, String body) {
     if(validateMessageHash(fromAlias, "SERVER", body)) {
-
+      completedHandshake = true;
     }
 
     disconnect = true;
