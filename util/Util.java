@@ -17,6 +17,13 @@ public class Util {
     System.out.println(e.getClass());
   }
 
+  public static byte[] toByteArray(short value) {
+    byte[] bytes = new byte[2];
+    bytes[0] = (byte)((value >> 8) & 0xff);
+    bytes[1] = (byte)(value & 0xff);
+    return bytes;
+  }
+
   public static byte[] toByteArray(String hex) {
     int len = hex.length();
     byte[] bytes = new byte[len / 2];
@@ -31,6 +38,21 @@ public class Util {
 
   public static String toHexString(byte[] _bytes) {
     return toHexString(_bytes, false);
+  }
+
+  public static Integer toInteger(byte[] _bytes) {
+    if(_bytes.length < 4) {
+      byte[] padding = new byte[4 - _bytes.length];
+
+      for(int i = 0; i < padding.length; i++) {
+        padding[i] = 0;
+      }
+
+      _bytes = Util.concatByteArrays(padding, _bytes);
+    }
+
+    ByteBuffer buf = ByteBuffer.wrap(_bytes);
+    return buf.getInt();
   }
 
   public static String toHexString(byte[] _bytes, boolean prependX) {

@@ -23,6 +23,7 @@ public abstract class SslProtocol extends Protocol {
   protected static String sharedMac = "foobar";
   protected long masterSecret;
   protected boolean completedHandshake = false;
+  protected boolean authenticatedMessages = false;
   protected ArrayList<byte[]> dataBytes;
 
   protected static String[] requests  = { "FORMAT", "MESSAGE_INTEGRITY" };
@@ -32,13 +33,20 @@ public abstract class SslProtocol extends Protocol {
   protected static String topLevelDelimiter = ":";
   protected static String secondLevelDelimiter = "#";
   protected static String transferFile = "solutions/backbone.js";
+  protected static String authenticatedAlias;
   protected static int HASH_LENGTH = 20;
   protected static int MAX_TRANSFER_SIZE = 16386;
   protected static int MAX_DATA_SIZE = MAX_TRANSFER_SIZE - HASH_LENGTH;
 
   public abstract String processData(String input, String[] actions);
+  public abstract String processHandshake(String input, String[] actions);
   public abstract String receiveFormat(String body); 
   public abstract String receiveMessageIntegrity(String fromAlias, String body);
+  public abstract SecretKey getOutboundKey();
+  public abstract SecretKey getInboundKey();
+  public abstract Mac getOutboundMac();
+  public abstract Mac getInboundMac();
+
 
   public SslProtocol() {
     disconnect = false;
@@ -66,65 +74,53 @@ public abstract class SslProtocol extends Protocol {
     return disconnect;
   }
 
+  public String decryptMessage(String message) {
+    byte[] messageBytes = Util.toByteArray(message);
+    String unencryptedInput = authManager.decrypt(getInboundKey(), getInboundMac(), messageBytes);
+    return unencryptedInput;
+  }
+
+  public String encryptMessage(String message) {
+    byte[] bytes = authManager.encrypt(getOutboundKey(), getOutboundMac(), message);
+    return Util.toHexString(bytes);
+  }
+
   public void generateKeys() {
     integrityMac1 = authManager.buildMac(masterSecret);
     integrityMac2 = authManager.buildMac(masterSecret + 1);
     encryptionKey1 = authManager.buildKey(masterSecret);
     encryptionKey2 = authManager.buildKey(masterSecret + 1);
   }
-  
-  public String processHandshake(String input, String[] actions) {
-    // header:body:certificate
-    // RESPONSE--ALIAS:body:certificate
-    byte[] inputBytes = Util.toByteArray(input);
-    String unencryptedInput = authManager.decrypt(encryptionKey0, integrityMac0, inputBytes);
 
-    printInput(certAlias, unencryptedInput);
-
-    String[] response = unencryptedInput.split(topLevelDelimiter);
-    String[] header = response[0].split(secondLevelDelimiter);
-    validateCertificate(header[1], response[2]);
-
-    String nextRequest = null;
-    // FORMAT--ALIAS:OK--NONCE:CERT
-    if(header[0].equals(actions[0])) {
-      nextRequest = receiveFormat(response[1]);
-    }
-    // MESSAGE_INTEGRITY--ALIAS:HASH:CERT
-    else if(header[0].equals(actions[1])) {
-      nextRequest = receiveMessageIntegrity(header[1], response[1]);
-    }
-    else {
-      disconnect = true;
-    }
-
-    if(disconnect()) {
-      return null;
-    }
-    
-    recordMessage(header[1], input);
-    printOutput(certAlias, nextRequest);
-    nextRequest = Util.toHexString(authManager.encrypt(encryptionKey0, integrityMac0, nextRequest));
-    recordMessage(certAlias, nextRequest);
-
-    return nextRequest;
+  public String getRecordBody(String message) {
+   return message.substring(10);
   }
 
-   
+  public String getRecordHeader(String message) {
+   return message.substring(0,10);
+  }
+
+  public int getRecordSize(String header) {
+    int size = 0;
+    byte[] bytes = Util.toByteArray(header.substring(6,10));
+
+    return Util.toInteger(bytes);
+  }
+
   public String processInput(String input, String[] actions) {
-    String nextRequest = null; 
+    String nextRequest = null;
+
     if(!completedHandshake) {
       nextRequest = processHandshake(input, actions);
     }
     else {
-      nextRequest = processData(input, actions);  
-    }  
-    
+      nextRequest = processData(input, actions);
+    }
+
     return nextRequest;
   }
 
-
- public String hashMessages(String alias, String prepend) {
+  public String hashMessages(String alias, String prepend) {
     ArrayList<String> messages = exchangedMessages.get(alias);
     String hashedMessage = prepend;
 
@@ -163,6 +159,8 @@ public abstract class SslProtocol extends Protocol {
     byte[] file = dataBytes.get(0); 
     byte[] originalFile = null;
 
+    System.out.println("Validating file...");
+
     for(int i = 1; i < dataBytes.size(); i++) {
       file = Util.concatByteArrays(file, dataBytes.get(i));
     }
@@ -189,7 +187,6 @@ public abstract class SslProtocol extends Protocol {
   public boolean validateMessageHash(String fromAlias, String prepend, String messageHash) {
     String hash = hashMessages(fromAlias, prepend);
     if(hash.equals(messageHash)) {
-      completedHandshake = true;
       return true;
     }
 

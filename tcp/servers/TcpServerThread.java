@@ -51,7 +51,9 @@ abstract public class TcpServerThread extends Thread implements TcpThreadObject 
           break;
         }
 
-        out.println(outputLine);
+        if(!protocol.noResponse) {
+          out.println(outputLine);
+        }
       }
 
       // clean up

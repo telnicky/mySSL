@@ -6,6 +6,7 @@ abstract public class Protocol {
   abstract public String getMessage();
   abstract public String processInput(String input);
   abstract public void cleanUp();
+  public boolean noResponse = false;
 
   public void printInput(String protocol, String input) {
     String message = protocol + " <- " + input;

@@ -24,7 +24,7 @@ abstract public class TcpClient implements TcpThreadObject, TcpObject {
 
       String inputLine, outputLine;
       Protocol protocol = getProtocol();
-      
+
       // initiate conversation
       out.println(protocol.getMessage());
 
@@ -34,7 +34,10 @@ abstract public class TcpClient implements TcpThreadObject, TcpObject {
           System.out.println("Disconnecting...");
           break; 
         }
-        out.println(outputLine);
+
+        if(!protocol.noResponse) {
+          out.println(outputLine);
+        }
       }
 
       protocol.cleanUp();

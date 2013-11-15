@@ -1,5 +1,6 @@
 package protocols;
 
+import javax.crypto.*;
 import util.Util;
 // Protocol:
 //   Format: [REQUEST|RESPONSE]:MESSAGE:CERTIFICATE
@@ -24,6 +25,38 @@ public class SslClientProtocol extends SslProtocol {
     certAlias = _clientAlias;
   }
 
+  public SecretKey getOutboundKey() {
+    if(completedHandshake) {
+      return encryptionKey1;
+    }
+
+    return encryptionKey0;
+  }
+
+  public SecretKey getInboundKey() {
+    if(completedHandshake) {
+      return encryptionKey2;
+    }
+
+    return encryptionKey0;
+  }
+
+  public Mac getOutboundMac() {
+    if(completedHandshake) {
+      return integrityMac1;
+    }
+
+    return integrityMac0;
+  }
+
+  public Mac getInboundMac() {
+    if(completedHandshake) {
+      return integrityMac2;
+    }
+
+    return integrityMac0;
+  }
+
   public String getMessage() {
     String output = sendFormat();
     byte[] bytes = authManager.encrypt(encryptionKey0, integrityMac0, output);
@@ -35,16 +68,19 @@ public class SslClientProtocol extends SslProtocol {
 
   public String processData(String input, String[] actions) {
     String response = null;
-    byte[] inputBytes = Util.toByteArray(input);
-// need to setup keys
-    String unencryptedInput = authManager.decrypt(encryptionKey0, integrityMac0, inputBytes);
-    String header = unencryptedInput.substring(0, 5);
-    byte[] body = Util.toByteArray(unencryptedInput.substring(5));
-    
-    byte size = Util.toByteArray(header.substring(3,5))[0];
+    String unencryptedInput = decryptMessage(input);
+
+    String header = getRecordHeader(unencryptedInput);
+    byte[] body = Util.toByteArray(getRecordBody(unencryptedInput));
+    int size = getRecordSize(header);
+
+    String log = "recieved " + size + " bytes" + " header:0x" + header;
+    printInput(certAlias, log);
+
     if(size == 0) {
       response = validateFile();
       if(response.equals(success[0])) {
+        System.out.println("Successfully transfered file!");
         disconnect = true;
       }
     }
@@ -52,9 +88,44 @@ public class SslClientProtocol extends SslProtocol {
       response = receiveData(body); 
     }
 
+    String encryptedResponse = encryptMessage(response);
+    return encryptedResponse;
+  }
+
+  public String processHandshake(String input, String[] actions) {
+    // header:body:certificate
+    // RESPONSE--ALIAS:body:certificate
+    String unencryptedInput = decryptMessage(input);
     printInput(certAlias, unencryptedInput);
-     
-    return success[0]; 
+
+    String[] response = unencryptedInput.split(topLevelDelimiter);
+    String[] header = response[0].split(secondLevelDelimiter);
+    validateCertificate(header[1], response[2]);
+
+    String nextRequest = null;
+    // FORMAT--ALIAS:OK--NONCE:CERT
+    if(header[0].equals(actions[0])) {
+      nextRequest = receiveFormat(response[1]);
+    }
+    // MESSAGE_INTEGRITY--ALIAS:HASH:CERT
+    else if(header[0].equals(actions[1])) {
+      nextRequest = receiveMessageIntegrity(header[1], response[1]);
+    }
+    else {
+      disconnect = true;
+    }
+
+    printOutput(certAlias, nextRequest);
+
+    if(authenticatedMessages) {
+      completedHandshake = true;
+    }
+
+    nextRequest = encryptMessage(nextRequest);
+    recordMessage(header[1], input);
+    recordMessage(certAlias, nextRequest);
+
+    return nextRequest;
   }
 
   public String processInput(String input) {
@@ -81,7 +152,8 @@ public class SslClientProtocol extends SslProtocol {
 
   public String receiveMessageIntegrity(String fromAlias, String body) {
     if(validateMessageHash(fromAlias, "SERVER", body)) {
-      completedHandshake = true;
+      authenticatedMessages = true;
+      return success[0];
     }
 
     disconnect = true;
