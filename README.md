@@ -1,4 +1,19 @@
-Due by 11:59:59 PM MT on 11/18/2013 
+Directories:
+  authentication - contains Authentication manager which is responsible
+for all encryption and message digest operations
+
+  protocols - contains state machine like code that determine what the
+requests and responses mean
+
+  solutions - contains text file output required by assignment
+
+  tcp - contains classes responsible for sending and receiving data. All
+data transfers are done via tcp sockets
+
+  util - contains a utility class that has methods like printing and
+writing to files.
+
+
  
 Total Points for this Programming Assignment: 100 
  

@@ -4,10 +4,9 @@ AUTHENTICATION_DIR := $(TOP)/authentication
 CLIENT_DIR := $(TCP_DIR)/clients
 SERVER_DIR := $(TCP_DIR)/servers
 PROTOCOL_DIR := $(TOP)/protocols
-RUNNER_DIR := $(TOP)/runners
 UTIL_DIR := $(TOP)/util
 
-install: alice authenticationManager bob bobThread protocol sslClientProtocol sslRunner sslProtocol tcpClient tcpObject tcpServer tcpServerThread tcpThreadObject util
+install: alice authenticationManager bob bobThread protocol sslClientProtocol sslProtocol tcpClient tcpObject tcpServer tcpServerThread tcpThreadObject util
 
 alice: $(CLIENT_DIR)/Alice.java
 	javac $(CLIENT_DIR)/Alice.java
@@ -32,9 +31,6 @@ sslClientProtocol: $(PROTOCOL_DIR)/SslClientProtocol.java
 
 sslServerProtocol: $(PROTOCOL_DIR)/SslServerProtocol.java
 	javac $(PROTOCOL_DIR)/SslServerProtocol.java
-
-sslRunner: $(RUNNER_DIR)/SslRunner.java
-	javac $(RUNNER_DIR)/SslRunner.java
 
 tcpClient: $(CLIENT_DIR)/TcpClient.java
 	javac $(CLIENT_DIR)/TcpClient.java

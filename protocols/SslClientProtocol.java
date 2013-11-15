@@ -156,8 +156,9 @@ public class SslClientProtocol extends SslProtocol {
       return success[0];
     }
 
+    System.out.println("failed message integrity check");
     disconnect = true;
-    return null;
+    return errors[0];
   }
 
   public String sendFormat() {

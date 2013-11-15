@@ -24,6 +24,7 @@ public abstract class SslProtocol extends Protocol {
   protected long masterSecret;
   protected boolean completedHandshake = false;
   protected boolean authenticatedMessages = false;
+  protected boolean simulatedFailure = false;
   protected ArrayList<byte[]> dataBytes;
 
   protected static String[] requests  = { "FORMAT", "MESSAGE_INTEGRITY" };
@@ -82,6 +83,11 @@ public abstract class SslProtocol extends Protocol {
 
   public String encryptMessage(String message) {
     byte[] bytes = authManager.encrypt(getOutboundKey(), getOutboundMac(), message);
+
+    if(simulatedFailure) {
+      bytes[0] = (byte)(bytes[0] ^ 0x5);
+    }
+
     return Util.toHexString(bytes);
   }
 
